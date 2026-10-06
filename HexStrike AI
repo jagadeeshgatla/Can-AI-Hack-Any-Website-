@@ -1,0 +1,155 @@
+HexStrike AI: MCP-Based Offensive Security Framework & Claude Desktop Integration
+
+A technical overview and setup guide for HexStrike AI, an open-source framework leveraging Anthropic’s Model Context Protocol (MCP) to connect Large Language Models (LLMs) with standard cybersecurity tools for automated security assessments and bug auditing.
+
+1. Overview & Architecture
+
+HexStrike AI bridges the gap between conversational AI interfaces and command-line security tools. Using the Model Context Protocol (MCP), it enables client LLMs (such as Claude Desktop or ChatGPT) to interact directly with an operating system's security utilities.
+
+┌─────────────────┐       MCP Protocol        ┌─────────────────────────┐
+│  AI Interface   │ ◄───────────────────────► │   HexStrike Server      │
+│ (Claude Desktop)│    (Structured JSON)      │   (FastMCP / Python)    │
+└─────────────────┘                           └────────────┬────────────┘
+                                                           │ Orchestrates
+                                                           ▼
+                                              ┌─────────────────────────┐
+                                              │   Local Tool Arsenal    │
+                                              │ (Nmap, sqlmap, Zap,etc) │
+                                              └─────────────────────────┘
+
+Core Components
+
+Model Context Protocol (MCP): A standardized communication protocol allowing AI models to execute OS-level tools and parse structured outputs in real time.
+
+
+Intelligent Tool Selection: The AI evaluates user requests, determines the optimal tool for the objective (e.g., Nmap, sqlmap, Nikto), executes it via the local server, and analyzes the results in an autonomous feedback loop.
+
+
+Tool Arsenal (150+ Tools): Integrates standard utilities covering Network Reconnaissance, Web Application Security, Cloud Security, Binary Analysis, Authentication Testing, CTF Challenges, and OSINT.
+
+
+Dedicated Sub-Agents: Contains specialized workflow agents for bug hunting, CTF challenges, exploit generation, and CVE intelligence.
+
+2. Prerequisites
+
+Operating System: Kali Linux (recommended) or any Debian/Ubuntu-based distribution with standard security tools pre-installed.
+
+
+Core Utilities: Python 3.10+, pip, git, and target tools (e.g., nmap, sqlmap, gobuster).
+
+
+Client Interface: Claude Desktop application or an MCP-compatible client.
+
+
+3. Installation & Server Setup
+
+Step 1: Clone the Repository
+
+bash
+git clone https://github.com/0xkn4/hexstrike-ai.git
+cd hexstrike-ai
+
+Step 2: Configure Virtual Environment
+
+bash
+Create an isolated environment
+python3 -m venv hexstrike-env
+
+Activate the virtual environment
+source hexstrike-env/bin/activate
+
+Step 3: Install Dependencies
+
+bash
+pip3 install -r requirements.txt
+
+Step 4: Run the HexStrike MCP Server
+
+bash
+python3 hexstrike_server.py
+
+The terminal will display the active MCP server status listening on local port `8888` with loaded tool modules.
+
+4. Claude Desktop Client Integration
+
+Step 1: Install Claude Desktop (Debian / Kali)
+
+If Claude Desktop is not yet installed on Linux, configure the repository and install the package:
+
+bash
+Add signing key and repository sources
+curl -sS https://pkg.claude-desktop-debian.dev/KEY.gpg | gpg --dearmor -o /etc/apt/keyrings/claude-desktop.gpg
+echo "deb [signed-by=/etc/apt/keyrings/claude-desktop.gpg arch=amd64,arm64] https://pkg.claude-desktop-debian.dev stable main" | sudo tee /etc/apt/sources.list.d/claude-desktop.list
+
+Update repository and install
+sudo apt update && sudo apt install claude-desktop
+
+Step 2: Configure MCP Server Mapping
+
+Claude Desktop uses a configuration JSON file to define active MCP servers.
+
+1. Create the directory if it does not already exist:
+
+bash
+mkdir -p ~/.config/Claude
+
+2. Open the configuration file in an editor:
+
+bash
+nano ~/.config/Claude/claude_desktop_config.json
+
+3. Add the server entry:
+json
+{
+  "mcpServers": {
+    "hexstrike": {
+      "command": "python3",
+      "args": [
+        "/path/to/hexstrike-ai/hexstrike_mcp.py"
+      ],
+      "env": {
+        "HEXSTRIKE_SERVER_URL": "http://localhost:8888"
+      }
+    }
+  }
+}
+
+(Ensure paths match your absolute filesystem location)
+
+
+4. Save (`Ctrl + O`, `Enter`) and exit (`Ctrl + X`).
+
+5. Verification & Testing
+
+Health Check
+
+Launch Claude Desktop and execute the following prompt to verify connection to the framework:
+
+text
+check hexstrike mcp server health
+
+The model will query the local API and return metrics including registered tools, CPU/memory status, and loaded module categories.
+
+Case Walkthrough: Web Security Assessment
+
+In an authorized laboratory environment (e.g., PortSwigger Web Security Academy):
+
+1. Target Formulation:  Provide the lab URL and prompt the AI:
+
+text
+Find SQL injection vulnerabilities on this target using HexStrike AI: <LAB_TARGET_URL>
+
+2. Autonomous Execution:** HexStrike selects the appropriate scanner (e.g., `sqlmap`), submits targeted requests to identify dynamic parameters, and parses backend feedback.
+3. Findings & Verification:** Once identified, the AI documents parameter weaknesses and outputs confirmation of the injection point (e.g., `' OR 1=1--`), confirming successful resolution in the lab portal.
+
+6. Defensive Considerations & Remediation
+
+When auditing applications that exhibit input handling vulnerabilities discovered by automated scanners:
+
+Parameterized Queries (Prepared Statements): Always bind user inputs rather than concatenating raw strings into SQL queries.
+Input Validation & Sanitization: Implement strict allowlisting for expected field types.
+Principle of Least Privilege: Ensure database connection accounts run with minimum required read/write permissions.
+
+Disclaimer
+
+This documentation is strictly intended for authorized penetration testing, academic research, and defensive application security auditing. Unauthorized access against targets without prior mutual consent is strictly illegal under applicable computer security laws.
